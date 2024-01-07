@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Propensao",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/start.sh",
+            "console": "integratedTerminal",
+            "python": "./env/bin/activate" 
+        }
+    ]
+}
