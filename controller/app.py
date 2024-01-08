@@ -1,18 +1,17 @@
 
 from tratamento_base_utilizacao import TratamentoVariaveisBaseUtilizacao
-from tratamento_variaveis import TratamentoVariaveis
 from looping_algoritimos import LoopingAlgoritmos
 from maquina_comites import MaquinaDeComites
 from previsor import Previsor
 from score_best_model import ScoreBestModel
 
 def processarBase():
-    data_processor = TratamentoVariaveis()
-    data_processor.capturaDados()  
-    data_processor.salvarVariaveis()
+    data_model = TratamentoVariaveisBaseUtilizacao(True)
+    data_model.capturaDadosUtilizacao()  
+    data_model.salvarVariaveisBaseUtilizacao()
         
 def processarBaseUtilizacao():
-    data_utilizacao = TratamentoVariaveisBaseUtilizacao()
+    data_utilizacao = TratamentoVariaveisBaseUtilizacao(False)
     data_utilizacao.capturaDadosUtilizacao()  
     data_utilizacao.salvarVariaveisBaseUtilizacao()
         

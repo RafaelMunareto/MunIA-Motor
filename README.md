@@ -1,6 +1,6 @@
 # Projeto Propensão
 
-Este projeto é uma aplicação  para processamento e análise de dados para utilizando de IA Supervisionada de classificação, utilizando diversas técnicas de machine learning e oferecendo uma interface web para interação com os usuários.
+Este projeto é uma aplicação  para processamento e análise de dados para utilizando de IA Supervisionada de classificação, utilizando diversas técnicas de machine learning e oferecendo uma interface web para interação com os usuários em todos os aspectos da ferramenta. Hoje a ferramenta fuciona somente no terminal, mas ele deve ser capaz de ter uma vizualização web e via desktop com o processamento em filas para não dar timeOut, além disso o sistema tem que ter uma inteface muito agrádavel e com um UX excelente e também ser capaz de gerar gráficos em todas as partes do projeto assim como barras de loading.
 
 ## Estrutura do Projeto
 
@@ -25,7 +25,7 @@ propensao/
 ├── start.sh
 └── view/
 
-### Descrição dos Diretórios
+### Descrição dos Diretórios criados até o momento
 
 - `__pycache__`: Contém arquivos compilados que o Python cria para acelerar o carregamento de módulos.
 - `config`: Guarda arquivos de configuração, como variáveis de ambiente e configurações gerais.

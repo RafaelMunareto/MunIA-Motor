@@ -5,9 +5,9 @@
             "name": "Python: Propensao",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/start.sh",
+            "program": "${workspaceFolder}/controller/app.py",
             "console": "integratedTerminal",
-            "python": "./env/bin/activate" 
+           
         }
     ]
 }

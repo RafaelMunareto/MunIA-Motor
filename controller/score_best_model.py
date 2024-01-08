@@ -60,7 +60,8 @@ class ScoreBestModel:
         self.df.drop(columns=["Unnamed: 0", "score_results"], inplace=True)
         self.df.rename(columns={'score_ajustado': 'score', 'predicao_results': 'predicao'}, inplace=True)
         print(self.df.head())
-        print(f'10 Score > 70 \n {self.df.query('score > 70').sort_values('score', ascending=True)}')
+        score = self.df.query('score > 70').sort_values('score', ascending=True)
+        print(f'10 Score > 70 \n {score}')
         self.salvarBestModel()
 
     def salvarBestModel(self):
