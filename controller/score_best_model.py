@@ -2,6 +2,7 @@ import json
 import pickle
 import pandas as pd
 import config.environment as environment 
+import tqdm
 
 class ScoreBestModel:
     def __init__(self):
@@ -48,7 +49,7 @@ class ScoreBestModel:
         combined_df = pd.merge(self.results, self.bm, left_index=True, right_index=True, how='left')
 
         # Ajustar scores
-        for i, row in combined_df.iterrows():
+        for i, row in tqdm.tqdm(combined_df.iterrows(), total=combined_df.shape[0], desc="Criando Score"):
             if row['predicao_bm'] == 1 and row['score_results'] < 70:
                 aumento = row['score_results'] * 0.10  # Aumento de 10% do score atual
                 novo_score = min(100, row['score_results'] + aumento)  # Garantir que o score não ultrapasse 100%

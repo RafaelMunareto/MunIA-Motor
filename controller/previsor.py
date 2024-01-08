@@ -70,7 +70,7 @@ class Previsor:
         relatorio = {}
 
         # Iterando sobre cada modelo e suas métricas
-        for modelo, metricas in RESULTADOS['resultados'].items():
+        for modelo, metricas in tqdm(RESULTADOS['resultados'].items(), desc="Processando modelos"):
             df = pd.read_csv(f'{environment.resultado_dir}{modelo}.csv', sep=',')
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3
