@@ -13,4 +13,7 @@ model/algoritimos/*
 model/teste/*
 !model/teste/.gitkeep
 
+model/analise_score/*
+!model/analise_score/.gitkeep
+
 env
