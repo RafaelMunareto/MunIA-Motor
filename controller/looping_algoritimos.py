@@ -1,84 +1,123 @@
 import pickle
 import numpy as np
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_fscore_support, roc_auc_score, accuracy_score
 from sklearn.model_selection import train_test_split, cross_val_score
-from sklearn.metrics import accuracy_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 from datetime import datetime
+
+from xgboost import XGBClassifier
+import config.environment as environment 
+from tqdm import tqdm
 import json
-import os
 
 class LoopingAlgoritmos:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.alvo = None
         self.previsores = None
         self.modelos = {}
         self.resultados = {}
+
     
-    def carregarDados(self, escolha, tamanho):
-        if escolha not in ['p', 's', 'pca']:
-            raise ValueError("Escolha inválida. Deve ser 'p', 's' ou 'pca'.")
-        
-        previsor_utilizado = self.config['previsores'][escolha]
-        alvo_path = os.path.join(self.config['variaveis_dir'], self.config['alvo'])
-        previsores_path = os.path.join(self.config['variaveis_dir'], previsor_utilizado)
-        
-        if not os.path.exists(alvo_path) or not os.path.exists(previsores_path):
-            raise FileNotFoundError("Arquivo de dados não encontrado.")
-        
-        with open(alvo_path, 'rb') as file:
-            self.alvo = pickle.load(file)[:tamanho]
-        with open(previsores_path, 'rb') as file:
-            self.previsores = pickle.load(file)[:tamanho]
+    def carregarDados(self):
+        escolha = input('Qual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
+        if escolha == 'p':
+            environment.previsor_utilizado = environment.previsores
+        elif escolha == 's':
+            environment.previsor_utilizado = environment.previsores_scalonados
+        elif escolha == 'pca':
+            environment.previsor_utilizado = environment.previsores_pca
+        tamanho = int(input('Tamanho Máximo do previsor e alvo? '))
+        with open(f'{environment.variaveis_dir}{environment.alvo}', 'rb') as file:
+            self.alvo = pickle.load(file)
+            if tamanho < len(self.alvo): 
+                self.alvo = self.alvo[:tamanho]
+                environment.tamanho = tamanho
+        with open(f'{environment.variaveis_dir}{environment.previsor_utilizado}', 'rb') as file:
+            self.previsores = pickle.load(file)
+            if tamanho < len(self.previsores):  
+                self.previsores = self.previsores[:tamanho]
             
+        
     def treinarModelos(self):
+        print(f'Previsor utilizado {environment.previsor_utilizado}')
+        inicio_treinamento = datetime.now()
         X_train, X_test, y_train, y_test = train_test_split(
             self.previsores, self.alvo, test_size=0.3, random_state=42
         )
+
         y_train = y_train.values.ravel()
+        print("Número de linhas em X:", X_train.shape[0])
+        print("Número de linhas em y:", y_train.shape[0])
+        print("\n Terminou a divisão treino e teste \n")
+        with open(f'{environment.variaveis_dir}X_test.pickle', 'wb') as file:
+            pickle.dump(X_test, file)
+        with open(f'{environment.variaveis_dir}Y_test.pickle', 'wb') as file:
+            pickle.dump(y_test, file)
+        with open(f'{environment.variaveis_dir}X_train.pickle', 'wb') as file:
+            pickle.dump(X_train, file)
+        with open(f'{environment.variaveis_dir}Y_train.pickle', 'wb') as file:
+            pickle.dump(y_train, file)
         
-        # Criação e treinamento de modelos
         algoritmos = {
-            'nb': GaussianNB(),
-            'et': ExtraTreesClassifier(),
-            'lr': LogisticRegression(max_iter=1000),
-            'knn': KNeighborsClassifier(),
-            'gb': GradientBoostingClassifier(),
-            'ab': AdaBoostClassifier(),
-            'rf': RandomForestClassifier(),
+            environment.xgb: XGBClassifier(objective="binary:logistic", n_estimators=200, learning_rate=0.05, max_depth=6, subsample=0.8, random_state=42),
+            environment.nb: GaussianNB(),
+            environment.et: ExtraTreesClassifier(n_estimators=150, max_features='sqrt', max_depth=10, random_state=42),
+            environment.lr: LogisticRegression(max_iter=1000, C=1.0, solver='saga', random_state=42),
+            environment.knn: KNeighborsClassifier(n_neighbors=5, weights='distance'),
+            environment.gb: GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=5, random_state=42),
+            environment.ab: AdaBoostClassifier(n_estimators=100, learning_rate=0.01, random_state=42),
+            environment.rf: RandomForestClassifier(n_estimators=200, max_features='sqrt', max_depth=10, random_state=42),
         }
+
         resultados = {}
-        inicio_treinamento = datetime.now()
+        barra_progresso = tqdm(total=len(algoritmos), unit="modelo")
 
         for nome, modelo in algoritmos.items():
-            cv_scores = cross_val_score(modelo, X_train, y_train, cv=self.config['cv'])
+            barra_progresso.set_description(f"Treinando modelo {nome}")
+            cv_scores = cross_val_score(modelo, X_train, y_train, cv=environment.cv)
             cv_accuracy = np.mean(cv_scores)
-            cv_std = np.std(cv_scores)
             modelo.fit(X_train, y_train)
             y_pred = modelo.predict(X_test)
+            
+            # Novas métricas
             acc = accuracy_score(y_test, y_pred)
-            self.modelos[nome] = modelo
+            precision, recall, fscore, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
+            roc_auc = roc_auc_score(y_test, modelo.predict_proba(X_test)[:, 1])
+            
+            # Matriz de confusão
+            cm = confusion_matrix(y_test, y_pred)
+            barra_progresso.update(1)
+            # Armazenar os resultados
             resultados[nome] = {
                 "accuracy": acc,
-                "cv_accuracy": cv_accuracy,
-                "cv_std": cv_std
+                "precision": precision,
+                "cv_Accuracy": cv_accuracy,
+                "recall": recall,
+                "f1_score": fscore,
+                "roc_auc": roc_auc,
+                "confusion_matrix": cm.tolist()  
             }
-            with open(os.path.join(self.config['algoritimos_dir'], f'{nome}.pickle'), 'wb') as file:
+            
+            with open(f'{environment.algoritimos_dir}{nome}.pickle', 'wb') as file:
                 pickle.dump(modelo, file)
-
+        barra_progresso.close()
         fim_treinamento = datetime.now()
+        
         resultados_completos = {
             "resultados": resultados,
             "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S'),
             "fim": fim_treinamento.strftime('%Y-%m-%d %H:%M:%S')
         }
-        with open(os.path.join(self.config['algoritimos_dir'], self.config['resultado_completo_df']), 'wb') as file:
+        print(json.dumps(resultados_completos, indent=4))
+        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
             pickle.dump(resultados_completos, file)
 
         self.resultados = resultados_completos
 
+        
     def obterResultados(self):
         return self.resultados

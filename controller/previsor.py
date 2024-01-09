@@ -52,14 +52,19 @@ class Previsor:
         return self.modelo.predict_proba(self.X)[:, 1]
 
     def adicionarPredicoesAoDataFrame(self):
-        for nome_modelo, modelo in tqdm.tqdm(self.modelos.items(), desc="Executando previsões"):
-            print(f"Executando previsões para o modelo: {nome_modelo}")
+        barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
+
+        for nome_modelo, modelo in self.modelos.items():
+            barra_progresso.set_description(f"Executando previsões para o modelo: {nome_modelo}")
+
             self.df[environment.predicao] = modelo.predict(self.X)
             if hasattr(modelo, 'predict_proba'):
                 self.df[environment.score] = modelo.predict_proba(self.X)[:, 1]
 
             self.salvarDataFrame(self.df, nome_modelo)
+            barra_progresso.update(1)
 
+        barra_progresso.close()
         self.analise()
 
     def analise(selv):
@@ -121,6 +126,5 @@ class Previsor:
         caminho_completo = environment.resultado_dir + nome
         df2 = pd.DataFrame(X)
         df2.to_csv(caminho_completo + '.csv' )
-        print(f"DataFrame salvo com sucesso em {caminho_completo}.csv")
         
    

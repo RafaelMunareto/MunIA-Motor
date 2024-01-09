@@ -1,12 +1,14 @@
 import pickle
 import pandas as pd
+import numpy as np
 from sklearn.ensemble import VotingClassifier
 import config.environment as environment
 from tqdm import tqdm
 from datetime import datetime
-from sklearn.model_selection import cross_val_score
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report, confusion_matrix, precision_recall_fscore_support, roc_auc_score, accuracy_score
+from sklearn.model_selection import train_test_split, cross_val_score
 import json
+import time
 
 class MaquinaDeComites:
     def __init__(self):
@@ -33,14 +35,13 @@ class MaquinaDeComites:
             print("Resultados não disponíveis ou mal formatados.")
             return
         
-        for nome in tqdm(self.resultados['resultados'], desc="Carregando modelos", unit="modelo"):
+        for nome in tqdm(self.resultados['resultados'], desc="Carregando modelos...", unit="modelo"):
             try:
                 with open(f'{environment.algoritimos_dir}{nome}.pickle', 'rb') as file:
                     self.modelos[nome] = pickle.load(file)
             except FileNotFoundError:
                 print(f"Modelo {nome} não encontrado.")
                 self.modelos[nome] = None
-        print("Todos os modelos de treino carregados.")
 
     def criarComite(self):
         X_train = self.carregar_dados(f'{environment.variaveis_dir}X_train.pickle')
@@ -59,52 +60,73 @@ class MaquinaDeComites:
             return
 
         modelos_para_comite = []
-        for nome, modelo in tqdm(self.modelos.items(), desc="Preparando modelos para o comitê", unit="modelo"):
+        for nome, modelo in tqdm(self.modelos.items(), desc="Preparando modelos...", unit="modelo"):
             if modelo is not None:
                 modelos_para_comite.append((nome, modelo))
         
         if not modelos_para_comite:
             print("Nenhum modelo válido para formar o comitê.")
             return
-
-        voting = VotingClassifier(estimators=modelos_para_comite, voting='hard')
-        voting.fit(X_train, y_train)
-        print("Criação do comitê de algoritmos concluída.")
-
+        voting = VotingClassifier(estimators=modelos_para_comite, voting='soft')
+        with tqdm(total=1, desc="Treinando Voting Classifier", unit="etapa") as pbar:
+            voting.fit(X_train, y_train)
+            time.sleep(0.1)  
+            pbar.update(1)  
+     
         with open(f'{environment.algoritimos_dir}{environment.bm}.pickle', 'wb') as file:
             pickle.dump(voting, file)
 
+     
         self.adicionarResultadosComite(voting, X_train, y_train, X_test, y_test)
         return voting
 
     def adicionarResultadosComite(self, comite, X_train, y_train, X_test, y_test):
         inicio_mc = datetime.now()
 
-        cv_scores = cross_val_score(comite, X_train, y_train, cv=environment.cv)
-        cv_accuracy = cv_scores.mean()
-        cv_std = cv_scores.std()
+        with tqdm(total=5, desc="Processamento de Métricas", unit="etapa") as pbar:
+            cv_scores = cross_val_score(comite, X_train, y_train, cv=environment.cv)
+            cv_accuracy = cv_scores.mean()
+            pbar.update(1)  # Atualiza a barra de progresso
 
-        y_pred_test = comite.predict(X_test)
-        test_accuracy = accuracy_score(y_test, y_pred_test)
+            y_pred_test = comite.predict(X_test)
+            test_accuracy = accuracy_score(y_test, y_pred_test)
+            pbar.update(1)  # Atualiza a barra de progresso
 
-        fim_mc = datetime.now()
+            acc = accuracy_score(y_test, y_pred_test)
+            proba = comite.predict_proba(X_test)[:, 1]
+            precision, recall, fscore, _ = precision_recall_fscore_support(y_test, y_pred_test, average='binary')
+            roc_auc = roc_auc_score(y_test, proba)
+            pbar.update(1)  # Atualiza a barra de progresso
 
-        comite_resultados = {
-            "cv_accuracy": cv_accuracy,
-            "cv_std": cv_std,
-            "test_accuracy": test_accuracy,
-            "inicio_mc": inicio_mc.strftime('%Y-%m-%d %H:%M:%S'),
-            "fim_mc": fim_mc.strftime('%Y-%m-%d %H:%M:%S')
-        }
+            cm = confusion_matrix(y_test, y_pred_test)
+            pbar.update(1)  # Atualiza a barra de progresso
 
-        try:
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
-                resultados_existentes = pickle.load(file)
+            fim_mc = datetime.now()
+            pbar.update(1)  # Atualiza a barra de progresso
+      
+            comite_resultados = {
+                "cv_accuracy": float(cv_accuracy),  # Garante que seja um float simples
+                "accuracy": float(acc),
+                "precision": float(precision),
+                "test_accuracy": float(test_accuracy),
+                "recall": float(recall),
+                "f1_score": float(fscore),
+                "roc_auc": float(roc_auc),
+                "confusion_matrix": cm.tolist(),  # Já está em formato adequado
+                "inicio_mc": inicio_mc.strftime('%Y-%m-%d %H:%M:%S'),
+                "fim_mc": fim_mc.strftime('%Y-%m-%d %H:%M:%S'),
+                "proba": proba.tolist() if isinstance(proba, np.ndarray) else proba,  # Converte NumPy array para lista
+                "predict": y_pred_test.tolist() if isinstance(y_pred_test, np.ndarray) else y_pred_test
+            }
+            print(json.dumps(comite_resultados, indent=4))
+            try:
+                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
+                    resultados_existentes = pickle.load(file)
 
-            resultados_existentes['best_model_comite'] = comite_resultados
+                resultados_existentes['best_model_comite'] = comite_resultados
 
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
-                pickle.dump(resultados_existentes, file)
-            print(json.dumps(resultados_existentes, indent=4))
-        except Exception as e:
-            print(f"Ocorreu um erro: {e}")
+                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
+                    pickle.dump(resultados_existentes, file)
+                print(json.dumps(resultados_existentes, indent=4))
+            except Exception as e:
+                print(f"Ocorreu um erro: {e}")

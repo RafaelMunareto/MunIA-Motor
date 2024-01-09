@@ -51,22 +51,22 @@ class ScoreBestModel:
         # Ajustar scores
         for i, row in tqdm.tqdm(combined_df.iterrows(), total=combined_df.shape[0], desc="Criando Score"):
             if row['predicao_bm'] == 1 and row['score_results'] < 70:
-                aumento = row['score_results'] * 0.10  # Aumento de 10% do score atual
+                aumento = row['score_results'] * 0.5  # Aumento de 10% do score atual
                 novo_score = min(100, row['score_results'] + aumento)  # Garantir que o score não ultrapasse 100%
                 combined_df.at[i, 'score_results'] = novo_score
 
         # Selecionar todas as colunas do DataFrame 'results' e adicionar o score ajustado
         self.df = self.results.copy()
-        self.df['score_ajustado'] = combined_df['score_results'].apply(lambda x: min(100, x * 100))
         self.df.drop(columns=["Unnamed: 0", "score_results"], inplace=True)
         self.df.rename(columns={'score_ajustado': 'score', 'predicao_results': 'predicao'}, inplace=True)
         print(self.df.head())
-        score = self.df.query('score > 70').sort_values('score', ascending=True)
-        print(f'10 Score > 70 \n {score}')
+        score = self.df.query('score > 0.7').sort_values('score', ascending=True)
+        print(f'10 Score > 0.7 \n {score}')
         self.salvarBestModel()
 
     def salvarBestModel(self):
         self.df.to_csv(environment.resultado_dir + 'resultado_final.csv')
+        print('Resultado_final salvo !!!')
     
     @staticmethod
     def pergunta():
