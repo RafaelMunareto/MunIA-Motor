@@ -15,15 +15,17 @@ class Previsor:
         self.df = None
         self.scaler = None
         self.modelo_escolhido = None
+        self.tipo = None
     
 
     def carregarModelo(self):
-        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
+        self.tipo = input('O modelo que quer usar ? Ex: (s_1000) (p_10000) ' )
+        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
             resultados_formatados = pickle.load(file)
         print(json.dumps(resultados_formatados, indent=4))
         self.previsoesMetricas()
         for modelo in tqdm.tqdm(resultados_formatados['resultados'].keys(), desc="Carregando modelos"):
-            caminho_modelo = environment.algoritimos_dir + modelo + '.pickle'
+            caminho_modelo = environment.algoritimos_dir + modelo + '_' + self.tipo + '.pickle'
             with open(caminho_modelo, 'rb') as file:
                 self.modelos[modelo] = pickle.load(file)
 
@@ -59,13 +61,13 @@ class Previsor:
             self.df[environment.predicao] = modelo.predict(self.X)
             self.df[environment.score] = modelo.predict_proba(self.X)[:, 1]
 
-            self.salvarDataFrame(self.df, nome_modelo)
+            self.salvarDataFrame(self.df, nome_modelo, self.tipo)
             barra_progresso.update(1)
 
         barra_progresso.close()
         self.analise()
 
-    def analise(selv):
+    def analise(self):
         # Carregando os resultados dos algoritmos
         with open(environment.algoritimos_dir + environment.resultado_completo_df, 'rb') as file:
             RESULTADOS = pickle.load(file)
@@ -74,7 +76,7 @@ class Previsor:
 
         # Iterando sobre cada modelo e suas métricas
         for modelo, metricas in tqdm.tqdm(RESULTADOS['resultados'].items(), desc="Processando modelos"):
-            df = pd.read_csv(f'{environment.resultado_dir}{modelo}.csv', sep=',')
+            df = pd.read_csv(f'{environment.resultado_dir}{modelo}_{self.tipo}.csv', sep=',')
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3
             primeiras_previsoes = df.head(3)
@@ -126,8 +128,8 @@ class Previsor:
             print("\n")
 
     @staticmethod
-    def salvarDataFrame(X, nome):
-        caminho_completo = environment.resultado_dir + nome
+    def salvarDataFrame(X, nome, tipo):
+        caminho_completo = environment.resultado_dir + nome + '_' + tipo
         df2 = pd.DataFrame(X)
         df2.to_csv(caminho_completo + '.csv' )
     

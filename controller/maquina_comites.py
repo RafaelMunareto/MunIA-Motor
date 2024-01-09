@@ -18,6 +18,7 @@ class MaquinaDeComites:
         self.resultados = None
         self.previsores = None
         self.alvo = None
+        self.tipo = None
         self.modelos = {}
 
     def carregar_dados(self, caminho):
@@ -25,12 +26,13 @@ class MaquinaDeComites:
             return pickle.load(file)
 
     def carregarResultados(self):
+        self.tipo = input('O modelo que quer usar ? Ex: (s_1000) (p_10000) ' )
         try:
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
+            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
                 self.resultados = pickle.load(file)
             print("Resultado dos algoritmos carregados.")
         except FileNotFoundError:
-            print(f"Arquivo {environment.resultado_completo_df} não encontrado.")
+            print(f"Arquivo {environment.resultado_completo_df}_{self.tipo}.pickle não encontrado.")
             self.resultados = None
 
     def carregarModelos(self):
@@ -40,7 +42,7 @@ class MaquinaDeComites:
         
         for nome in tqdm(self.resultados['resultados'], desc="Carregando modelos...", unit="modelo"):
             try:
-                with open(f'{environment.algoritimos_dir}{nome}.pickle', 'rb') as file:
+                with open(f'{environment.algoritimos_dir}{nome}_{self.tipo}.pickle', 'rb') as file:
                     self.modelos[nome] = pickle.load(file)
             except FileNotFoundError:
                 print(f"Modelo {nome} não encontrado.")
@@ -76,7 +78,7 @@ class MaquinaDeComites:
             time.sleep(0.1)  
             pbar.update(1)  
            
-        with open(f'{environment.algoritimos_dir}{environment.bm}.pickle', 'wb') as file:
+        with open(f'{environment.algoritimos_dir}{environment.bm}_{self.tipo}.pickle', 'wb') as file:
             pickle.dump(voting, file)
 
      
@@ -123,13 +125,13 @@ class MaquinaDeComites:
                 "predict": y_pred_test[:5].tolist() if isinstance(y_pred_test, np.ndarray) else y_pred_test[:5]
             }
             try:
-                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
+                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
                     resultados_existentes = pickle.load(file)
 
                 # Adiciona as métricas do comitê na chave 'best_model_comite'
                 resultados_existentes['resultados']['bestModel'] = comite_resultados
 
-                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
+                with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'wb') as file:
                     pickle.dump(resultados_existentes, file)
                 print(json.dumps(resultados_existentes, indent=4))
             except Exception as e:

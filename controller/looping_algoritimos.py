@@ -18,29 +18,31 @@ import json
 class LoopingAlgoritmos:
     def __init__(self):
         self.alvo = None
+        self.escolha = None
+        self.tamanho = None
         self.previsores = None
         self.modelos = {}
         self.resultados = {}
 
     
     def carregarDados(self):
-        escolha = input('\nQual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
-        if escolha == 'p':
+        self.escolha = input('\nQual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
+        if self.escolha == 'p':
             environment.previsor_utilizado = environment.previsores
-        elif escolha == 's':
+        elif self.escolha == 's':
             environment.previsor_utilizado = environment.previsores_scalonados
-        elif escolha == 'pca':
+        elif self.escolha == 'pca':
             environment.previsor_utilizado = environment.previsores_pca
-        tamanho = int(input('Tamanho Máximo do previsor e alvo? '))
+        self.tamanho = int(input('Tamanho Máximo do previsor e alvo? '))
         with open(f'{environment.variaveis_dir}{environment.alvo}', 'rb') as file:
             self.alvo = pickle.load(file)
-            if tamanho < len(self.alvo): 
-                self.alvo = self.alvo[:tamanho]
-                environment.tamanho = tamanho
+            if self.tamanho < len(self.alvo): 
+                self.alvo = self.alvo[:self.tamanho]
+                environment.tamanho = self.tamanho
         with open(f'{environment.variaveis_dir}{environment.previsor_utilizado}', 'rb') as file:
             self.previsores = pickle.load(file)
-            if tamanho < len(self.previsores):  
-                self.previsores = self.previsores[:tamanho]
+            if self.tamanho < len(self.previsores):  
+                self.previsores = self.previsores[:self.tamanho]
             
         
     def treinarModelos(self):
@@ -102,7 +104,7 @@ class LoopingAlgoritmos:
                 "confusion_matrix": cm.tolist()  
             }
             
-            with open(f'{environment.algoritimos_dir}{nome}.pickle', 'wb') as file:
+            with open(f'{environment.algoritimos_dir}{nome}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
                 pickle.dump(modelo, file)
         barra_progresso.close()
         fim_treinamento = datetime.now()
@@ -114,7 +116,7 @@ class LoopingAlgoritmos:
         }
         print(json.dumps(resultados_completos, indent=4))
         self.previsoesMetricas()
-        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
+        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
             pickle.dump(resultados_completos, file)
 
         self.resultados = resultados_completos
