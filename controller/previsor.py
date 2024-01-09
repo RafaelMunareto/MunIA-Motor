@@ -21,13 +21,12 @@ class Previsor:
         with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
             resultados_formatados = pickle.load(file)
         print(json.dumps(resultados_formatados, indent=4))
-
+        self.previsoesMetricas()
         for modelo in tqdm.tqdm(resultados_formatados['resultados'].keys(), desc="Carregando modelos"):
             caminho_modelo = environment.algoritimos_dir + modelo + '.pickle'
             with open(caminho_modelo, 'rb') as file:
                 self.modelos[modelo] = pickle.load(file)
 
-        print("Modelos Carregados")
         self.carregarDados()
         self.adicionarPredicoesAoDataFrame()
 
@@ -58,8 +57,7 @@ class Previsor:
             barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 
             self.df[environment.predicao] = modelo.predict(self.X)
-            if hasattr(modelo, 'predict_proba'):
-                self.df[environment.score] = modelo.predict_proba(self.X)[:, 1]
+            self.df[environment.score] = modelo.predict_proba(self.X)[:, 1]
 
             self.salvarDataFrame(self.df, nome_modelo)
             barra_progresso.update(1)
@@ -75,7 +73,7 @@ class Previsor:
         relatorio = {}
 
         # Iterando sobre cada modelo e suas métricas
-        for modelo, metricas in tqdm(RESULTADOS['resultados'].items(), desc="Processando modelos"):
+        for modelo, metricas in tqdm.tqdm(RESULTADOS['resultados'].items(), desc="Processando modelos"):
             df = pd.read_csv(f'{environment.resultado_dir}{modelo}.csv', sep=',')
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3
@@ -92,7 +90,13 @@ class Previsor:
             
         def imprimir_dataframe(df):
             # Calculando a largura máxima para cada coluna
-            larguras_colunas = [max([len(str(x)) for x in df[col]]) for col in df.columns]
+            larguras_colunas = []
+            for col in df.columns:
+                if df[col].empty:
+                    larguras_colunas.append(len(col))
+                else:
+                    larguras_colunas.append(max([len(str(x)) for x in df[col]]))
+            
             
             # Formatando e imprimindo o cabeçalho
             cabecalho = " | ".join([f"{col:<{larguras_colunas[i]}}" for i, col in enumerate(df.columns)])
@@ -126,5 +130,12 @@ class Previsor:
         caminho_completo = environment.resultado_dir + nome
         df2 = pd.DataFrame(X)
         df2.to_csv(caminho_completo + '.csv' )
-        
-   
+    
+    def previsoesMetricas(self):
+        print('accuracy: Proporção de previsões corretas sobre o total. Mede a eficácia geral do modelo.\n')
+        print('precision: Proporção de previsões positivas corretas. Indica a qualidade dos resultados positivos do modelo.\n')
+        print('cv_Accuracy: Média da acurácia do modelo em diferentes subconjuntos do conjunto de treinamento. Oferece uma estimativa mais robusta da performance do modelo.\n')
+        print('recall: Proporção de casos positivos reais identificados corretamente. Mede a capacidade do modelo de detectar resultados positivos.\n')
+        print('f1_score: Média harmônica de precisão e recall. Combina precisão e revocação em uma única métrica, útil quando o equilíbrio entre estas é importante.\n')
+        print('roc_auc: Medida de quão bem o modelo distingue entre classes. Quanto maior, melhor o modelo em diferenciar entre positivo e negativo.\n')
+        print('confusion_matrix: Tabela que mostra os acertos e erros do modelo comparados com a realidade. Ajuda a entender os tipos de erro e acerto.\n')

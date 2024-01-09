@@ -3,7 +3,6 @@ from tratamento_base_utilizacao import TratamentoVariaveisBaseUtilizacao
 from looping_algoritimos import LoopingAlgoritmos
 from maquina_comites import MaquinaDeComites
 from previsor import Previsor
-from score_best_model import ScoreBestModel
 
 def processarBase():
     data_model = TratamentoVariaveisBaseUtilizacao(True)
@@ -29,48 +28,32 @@ def previsao():
     preditor = Previsor()
     preditor.carregarModelo()
 
-def score():     
-    analise = ScoreBestModel()
-    analise.juntarComBestModel()
-
 def menu_principal():
     while True:
         print("\nEscolha uma opção:")
-        print("P - Processar a base")
-        print("M - Rodar modelos")
+        print("B - Processar base de treino")
+        print("U - Processar base de teste")
+        print("R - Rodar modelos")
         print("C - Máquina de comitês")
-        print("PR - Propensão")
-        print("A - Score")
-        print("T - Tudo")
-        print("E - Preparar Base para utilização")
+        print("P - Predict e score")
         print("S - Sair")
     
         escolha = input("Digite sua escolha? ").lower()
     
-        if escolha == "p":
+        if escolha == "b":
             processarBase()
             pass
-        elif escolha == "m":
+        elif escolha == "u":
+            processarBaseUtilizacao()
+        elif escolha == "r":
             rodarModelos()
             pass
         elif escolha == "c":
             maquinaComites()
             pass
-        elif escolha == "pr":
+        elif escolha == "p":
             previsao()
-            pass
-        elif escolha == "a":
-            score()
-            pass
-        elif escolha == "t":
-            processarBase()
-            rodarModelos()
-            maquinaComites()
-            previsao()
-            score()
-            pass
-        elif escolha == "e":
-            processarBaseUtilizacao()
+            pass 
         elif escolha == "s":
             print("Saindo do programa.")
             break

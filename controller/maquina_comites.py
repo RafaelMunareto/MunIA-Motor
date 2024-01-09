@@ -7,6 +7,9 @@ from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_fscore_support, roc_auc_score, accuracy_score
 from sklearn.model_selection import train_test_split, cross_val_score
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 import json
 import time
 
@@ -72,17 +75,18 @@ class MaquinaDeComites:
             voting.fit(X_train, y_train)
             time.sleep(0.1)  
             pbar.update(1)  
-     
+           
         with open(f'{environment.algoritimos_dir}{environment.bm}.pickle', 'wb') as file:
             pickle.dump(voting, file)
 
      
         self.adicionarResultadosComite(voting, X_train, y_train, X_test, y_test)
+        
         return voting
 
     def adicionarResultadosComite(self, comite, X_train, y_train, X_test, y_test):
         inicio_mc = datetime.now()
-
+        
         with tqdm(total=5, desc="Processamento de Métricas", unit="etapa") as pbar:
             cv_scores = cross_val_score(comite, X_train, y_train, cv=environment.cv)
             cv_accuracy = cv_scores.mean()
@@ -118,15 +122,17 @@ class MaquinaDeComites:
                 "proba": proba[:5].tolist() if isinstance(proba, np.ndarray) else proba[:5],
                 "predict": y_pred_test[:5].tolist() if isinstance(y_pred_test, np.ndarray) else y_pred_test[:5]
             }
-            print(json.dumps(comite_resultados, indent=4))
             try:
                 with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'rb') as file:
                     resultados_existentes = pickle.load(file)
 
-                resultados_existentes['best_model_comite'] = comite_resultados
+                # Adiciona as métricas do comitê na chave 'best_model_comite'
+                resultados_existentes['resultados']['bestModel'] = comite_resultados
 
                 with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
                     pickle.dump(resultados_existentes, file)
                 print(json.dumps(resultados_existentes, indent=4))
             except Exception as e:
                 print(f"Ocorreu um erro: {e}")
+
+

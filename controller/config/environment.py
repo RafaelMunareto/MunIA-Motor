@@ -40,6 +40,8 @@ dt = "DecisionTree"
 et = "ExtraTrees"
 ct = "CatBoost"
 xgb = "XBoost"
+svm = "SVM"
+mlp = "Rede Neural"
 
 #previsor_utilizado e modelo utilizado
 previsor_utilizado = previsores_scalonados

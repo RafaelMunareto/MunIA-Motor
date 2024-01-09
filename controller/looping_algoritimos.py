@@ -1,14 +1,15 @@
 import pickle
 import numpy as np
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+warnings.filterwarnings("ignore", category=ConvergenceWarning)
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_fscore_support, roc_auc_score, accuracy_score
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.naive_bayes import GaussianNB
 from datetime import datetime
-
+from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 import config.environment as environment 
 from tqdm import tqdm
@@ -23,7 +24,7 @@ class LoopingAlgoritmos:
 
     
     def carregarDados(self):
-        escolha = input('Qual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
+        escolha = input('\nQual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
         if escolha == 'p':
             environment.previsor_utilizado = environment.previsores
         elif escolha == 's':
@@ -43,7 +44,7 @@ class LoopingAlgoritmos:
             
         
     def treinarModelos(self):
-        print(f'Previsor utilizado {environment.previsor_utilizado}')
+        print(f'\nPrevisor utilizado: {environment.previsor_utilizado}')
         inicio_treinamento = datetime.now()
         X_train, X_test, y_train, y_test = train_test_split(
             self.previsores, self.alvo, test_size=0.3, random_state=42
@@ -52,8 +53,8 @@ class LoopingAlgoritmos:
         y_train = y_train.values.ravel()
         print("Número de linhas em X:", X_train.shape[0])
         print("Número de linhas em y:", y_train.shape[0])
-        print("Terminou a divisão treino e teste!")
-        
+        print("Terminou a divisão treino e teste!\n")
+
         with open(f'{environment.variaveis_dir}X_test.pickle', 'wb') as file:
             pickle.dump(X_test, file)
         with open(f'{environment.variaveis_dir}Y_test.pickle', 'wb') as file:
@@ -66,10 +67,11 @@ class LoopingAlgoritmos:
         algoritmos = {
             environment.xgb: XGBClassifier(objective="binary:logistic", n_estimators=200, learning_rate=0.05, max_depth=6, subsample=0.8, random_state=42),
             environment.et: ExtraTreesClassifier(n_estimators=150, max_features='sqrt', max_depth=10, random_state=42),
+            environment.mlp: MLPClassifier(hidden_layer_sizes=(100,), random_state=42, max_iter=500),
             environment.lr: LogisticRegression(max_iter=1000, C=1.0, solver='saga', random_state=42),
             environment.knn: KNeighborsClassifier(n_neighbors=5, weights='distance'),
             environment.gb: GradientBoostingClassifier(n_estimators=200, learning_rate=0.05, max_depth=5, random_state=42),
-            environment.ab: AdaBoostClassifier(n_estimators=100, learning_rate=0.01, random_state=42),
+            environment.ab: AdaBoostClassifier(n_estimators=200, learning_rate=0.05, random_state=42),
             environment.rf: RandomForestClassifier(n_estimators=200, max_features='sqrt', max_depth=10, random_state=42),
         }
 
@@ -77,14 +79,14 @@ class LoopingAlgoritmos:
         barra_progresso = tqdm(total=len(algoritmos), unit="modelo")
 
         for nome, modelo in algoritmos.items():
-            barra_progresso.set_description(f"Treinando modelo {nome}")
+            barra_progresso.set_description(f"Treinando {nome}...")
             cv_scores = cross_val_score(modelo, X_train, y_train, cv=environment.cv)
             cv_accuracy = np.mean(cv_scores)
             modelo.fit(X_train, y_train)
             y_pred = modelo.predict(X_test)
             
             acc = accuracy_score(y_test, y_pred)
-            precision, recall, fscore, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
+            precision, recall, fscore, _ = precision_recall_fscore_support(y_test, y_pred, average='binary', zero_division=0)
             roc_auc = roc_auc_score(y_test, modelo.predict_proba(X_test)[:, 1])
         
             cm = confusion_matrix(y_test, y_pred)
@@ -111,6 +113,7 @@ class LoopingAlgoritmos:
             "fim": fim_treinamento.strftime('%Y-%m-%d %H:%M:%S')
         }
         print(json.dumps(resultados_completos, indent=4))
+        self.previsoesMetricas()
         with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}', 'wb') as file:
             pickle.dump(resultados_completos, file)
 
@@ -119,3 +122,12 @@ class LoopingAlgoritmos:
         
     def obterResultados(self):
         return self.resultados
+
+    def previsoesMetricas(self):
+        print('accuracy: Proporção de previsões corretas sobre o total. Mede a eficácia geral do modelo.\n')
+        print('precision: Proporção de previsões positivas corretas. Indica a qualidade dos resultados positivos do modelo.\n')
+        print('cv_Accuracy: Média da acurácia do modelo em diferentes subconjuntos do conjunto de treinamento. Oferece uma estimativa mais robusta da performance do modelo.\n')
+        print('recall: Proporção de casos positivos reais identificados corretamente. Mede a capacidade do modelo de detectar resultados positivos.\n')
+        print('f1_score: Média harmônica de precisão e recall. Combina precisão e revocação em uma única métrica, útil quando o equilíbrio entre estas é importante.\n')
+        print('roc_auc: Medida de quão bem o modelo distingue entre classes. Quanto maior, melhor o modelo em diferenciar entre positivo e negativo.\n')
+        print('confusion_matrix: Tabela que mostra os acertos e erros do modelo comparados com a realidade. Ajuda a entender os tipos de erro e acerto.\n')
