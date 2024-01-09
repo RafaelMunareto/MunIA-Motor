@@ -52,7 +52,8 @@ class LoopingAlgoritmos:
         y_train = y_train.values.ravel()
         print("Número de linhas em X:", X_train.shape[0])
         print("Número de linhas em y:", y_train.shape[0])
-        print("\n Terminou a divisão treino e teste \n")
+        print("Terminou a divisão treino e teste!")
+        
         with open(f'{environment.variaveis_dir}X_test.pickle', 'wb') as file:
             pickle.dump(X_test, file)
         with open(f'{environment.variaveis_dir}Y_test.pickle', 'wb') as file:
@@ -64,7 +65,6 @@ class LoopingAlgoritmos:
         
         algoritmos = {
             environment.xgb: XGBClassifier(objective="binary:logistic", n_estimators=200, learning_rate=0.05, max_depth=6, subsample=0.8, random_state=42),
-            environment.nb: GaussianNB(),
             environment.et: ExtraTreesClassifier(n_estimators=150, max_features='sqrt', max_depth=10, random_state=42),
             environment.lr: LogisticRegression(max_iter=1000, C=1.0, solver='saga', random_state=42),
             environment.knn: KNeighborsClassifier(n_neighbors=5, weights='distance'),
@@ -83,15 +83,13 @@ class LoopingAlgoritmos:
             modelo.fit(X_train, y_train)
             y_pred = modelo.predict(X_test)
             
-            # Novas métricas
             acc = accuracy_score(y_test, y_pred)
             precision, recall, fscore, _ = precision_recall_fscore_support(y_test, y_pred, average='binary')
             roc_auc = roc_auc_score(y_test, modelo.predict_proba(X_test)[:, 1])
-            
-            # Matriz de confusão
+        
             cm = confusion_matrix(y_test, y_pred)
             barra_progresso.update(1)
-            # Armazenar os resultados
+            
             resultados[nome] = {
                 "accuracy": acc,
                 "precision": precision,

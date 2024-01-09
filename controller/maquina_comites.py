@@ -105,18 +105,18 @@ class MaquinaDeComites:
             pbar.update(1)  # Atualiza a barra de progresso
       
             comite_resultados = {
-                "cv_accuracy": float(cv_accuracy),  # Garante que seja um float simples
+                "cv_accuracy": float(cv_accuracy),
                 "accuracy": float(acc),
                 "precision": float(precision),
                 "test_accuracy": float(test_accuracy),
                 "recall": float(recall),
                 "f1_score": float(fscore),
                 "roc_auc": float(roc_auc),
-                "confusion_matrix": cm.tolist(),  # Já está em formato adequado
+                "confusion_matrix": cm.tolist(), 
                 "inicio_mc": inicio_mc.strftime('%Y-%m-%d %H:%M:%S'),
                 "fim_mc": fim_mc.strftime('%Y-%m-%d %H:%M:%S'),
-                "proba": proba.tolist() if isinstance(proba, np.ndarray) else proba,  # Converte NumPy array para lista
-                "predict": y_pred_test.tolist() if isinstance(y_pred_test, np.ndarray) else y_pred_test
+                "proba": proba[:5].tolist() if isinstance(proba, np.ndarray) else proba[:5],
+                "predict": y_pred_test[:5].tolist() if isinstance(y_pred_test, np.ndarray) else y_pred_test[:5]
             }
             print(json.dumps(comite_resultados, indent=4))
             try:

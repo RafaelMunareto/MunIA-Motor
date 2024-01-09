@@ -39,7 +39,7 @@ class Previsor:
             self.df = pickle.load(file)
         self.df = pd.DataFrame(self.df)
         print("Dados Carregados \n")
-        print(json.dumps(self.X.head().to_dict(), indent=4))
+        print(json.dumps(self.X.head(3).to_dict(), indent=4))
         
     def prever(self):
         if self.modelo is None:
@@ -55,7 +55,7 @@ class Previsor:
         barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
 
         for nome_modelo, modelo in self.modelos.items():
-            barra_progresso.set_description(f"Executando previsões para o modelo: {nome_modelo}")
+            barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 
             self.df[environment.predicao] = modelo.predict(self.X)
             if hasattr(modelo, 'predict_proba'):
@@ -80,7 +80,7 @@ class Previsor:
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3
             primeiras_previsoes = df.head(3)
-            previsoes_positivas = df.query('predicao > 0').head(5)
+            previsoes_positivas = df.query('predicao > 0').head(3)
             scores_altos = df.query('score > 0.3').sort_values('score', ascending=False).head(3)
 
             relatorio[modelo] = {
