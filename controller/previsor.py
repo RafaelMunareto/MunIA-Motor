@@ -1,6 +1,7 @@
 import pandas as pd
 import pickle
-
+import warnings
+warnings.filterwarnings("ignore")
 import tqdm
 import config.environment as environment 
 from sklearn.preprocessing import StandardScaler
@@ -18,10 +19,17 @@ class Previsor:
         self.tipo = None
     
 
+    def buscaResultado(self): 
+        try:
+            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
+                return pickle.load(file)
+        except:
+            return print('Não foi possível carregar o resultado_final do algoritimo')
+
     def carregarModelo(self):
         self.tipo = input('O modelo que quer usar ? Ex: (s_1000) (p_10000) ' )
-        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
-            resultados_formatados = pickle.load(file)
+        resultados_formatados = self.buscaResultado()
+      
         print(json.dumps(resultados_formatados, indent=4))
         self.previsoesMetricas()
         for modelo in tqdm.tqdm(resultados_formatados['resultados'].keys(), desc="Carregando modelos"):
@@ -54,8 +62,16 @@ class Previsor:
 
     def adicionarPredicoesAoDataFrame(self):
         barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
+        try:
+            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
+                resultados_completos = pickle.load(file)
+        except FileNotFoundError:
+            resultados_completos = {"resultados": {}}
 
         for nome_modelo, modelo in self.modelos.items():
+            if nome_modelo in resultados_completos['resultados']:
+                print(f"Resultados do modelo {nome_modelo} já existem. Pulando para o próximo.")
+                continue
             barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 
             self.df[environment.predicao] = modelo.predict(self.X)
@@ -67,10 +83,9 @@ class Previsor:
         barra_progresso.close()
         self.analise()
 
+        
     def analise(self):
-        # Carregando os resultados dos algoritmos
-        with open(environment.algoritimos_dir + environment.resultado_completo_df, 'rb') as file:
-            RESULTADOS = pickle.load(file)
+        RESULTADOS = self.buscaResultado()
 
         relatorio = {}
 
@@ -129,6 +144,11 @@ class Previsor:
 
     @staticmethod
     def salvarDataFrame(X, nome, tipo):
+        resultados_completos = {
+            "resultados": nome,
+        }
+        with open(f'{environment.resultado_dir}{environment.resultado_completo_df}_{tipo}.pickle', 'wb') as file:
+            pickle.dump(resultados_completos, file)
         caminho_completo = environment.resultado_dir + nome + '_' + tipo
         df2 = pd.DataFrame(X)
         df2.to_csv(caminho_completo + '.csv' )

@@ -79,8 +79,17 @@ class LoopingAlgoritmos:
 
         resultados = {}
         barra_progresso = tqdm(total=len(algoritmos), unit="modelo")
-
+        # Verifica se existe um arquivo de resultados salvos anteriormente
+        try:
+            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'rb') as file:
+                resultados_completos = pickle.load(file)
+        except FileNotFoundError:
+            resultados_completos = {"resultados": {}, "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S')}
+            
         for nome, modelo in algoritmos.items():
+            if nome in resultados_completos['resultados']:
+                print(f"Resultados do modelo {nome} já existem. Pulando para o próximo.")
+                continue
             barra_progresso.set_description(f"Treinando {nome}...")
             cv_scores = cross_val_score(modelo, X_train, y_train, cv=environment.cv)
             cv_accuracy = np.mean(cv_scores)
@@ -93,37 +102,42 @@ class LoopingAlgoritmos:
         
             cm = confusion_matrix(y_test, y_pred)
             barra_progresso.update(1)
-            
+            fim_treinamento = datetime.now()
             resultados[nome] = {
+                "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S'),
                 "accuracy": acc,
                 "precision": precision,
                 "cv_Accuracy": cv_accuracy,
                 "recall": recall,
                 "f1_score": fscore,
                 "roc_auc": roc_auc,
-                "confusion_matrix": cm.tolist()  
+                "confusion_matrix": cm.tolist(),
+                "fim": fim_treinamento.strftime('%Y-%m-%d %H:%M:%S')
             }
             
             with open(f'{environment.algoritimos_dir}{nome}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
                 pickle.dump(modelo, file)
+            
+           
+            resultados_completos = {
+                "resultados": resultados,
+            }
+            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
+                pickle.dump(resultados_completos, file)
+            barra_progresso.update(1)
+            
         barra_progresso.close()
-        fim_treinamento = datetime.now()
+      
         
-        resultados_completos = {
-            "resultados": resultados,
-            "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S'),
-            "fim": fim_treinamento.strftime('%Y-%m-%d %H:%M:%S')
-        }
         print(json.dumps(resultados_completos, indent=4))
         self.previsoesMetricas()
-        with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
-            pickle.dump(resultados_completos, file)
-
+       
         self.resultados = resultados_completos
 
         
     def obterResultados(self):
         return self.resultados
+
 
     def previsoesMetricas(self):
         print('accuracy: Proporção de previsões corretas sobre o total. Mede a eficácia geral do modelo.\n')
