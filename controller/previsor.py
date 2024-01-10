@@ -19,16 +19,18 @@ class Previsor:
         self.tipo = None
     
 
-    def buscaResultado(self): 
+    def buscaResultadoAlgoritimo(self, resultado=False): 
         try:
             with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
-                return pickle.load(file)
+                dados =  pickle.load(file)
+                return dados
         except:
             return print('Não foi possível carregar o resultado_final do algoritimo')
+        
 
     def carregarModelo(self):
         self.tipo = input('O modelo que quer usar ? Ex: (s_1000) (p_10000) ' )
-        resultados_formatados = self.buscaResultado()
+        resultados_formatados = self.buscaResultadoAlgoritimo()
       
         print(json.dumps(resultados_formatados, indent=4))
         self.previsoesMetricas()
@@ -62,16 +64,8 @@ class Previsor:
 
     def adicionarPredicoesAoDataFrame(self):
         barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
-        try:
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
-                resultados_completos = pickle.load(file)
-        except FileNotFoundError:
-            resultados_completos = {"resultados": {}}
 
         for nome_modelo, modelo in self.modelos.items():
-            if nome_modelo in resultados_completos['resultados']:
-                print(f"Resultados do modelo {nome_modelo} já existem. Pulando para o próximo.")
-                continue
             barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 
             self.df[environment.predicao] = modelo.predict(self.X)
@@ -85,12 +79,19 @@ class Previsor:
 
         
     def analise(self):
-        RESULTADOS = self.buscaResultado()
+        RESULTADOS = self.buscaResultadoAlgoritimo(True)
 
         relatorio = {}
-
+        try:
+            with open(f'{environment.resultado_dir}{environment.resultado_completo_df}_{self.tipo}.pickle', 'rb') as file:
+                resultados_completos = pickle.load(file)
+        except FileNotFoundError:
+            resultados_completos = {"resultados": {}}
         # Iterando sobre cada modelo e suas métricas
         for modelo, metricas in tqdm.tqdm(RESULTADOS['resultados'].items(), desc="Processando modelos"):
+            if modelo in resultados_completos['resultados']:
+                print(f"Resultados do modelo {modelo} já existem. Pulando para o próximo.")
+                continue
             df = pd.read_csv(f'{environment.resultado_dir}{modelo}_{self.tipo}.csv', sep=',')
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3

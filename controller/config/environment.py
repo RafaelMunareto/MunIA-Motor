@@ -41,7 +41,7 @@ et = "ExtraTrees"
 ct = "CatBoost"
 xgb = "XBoost"
 svm = "SVM"
-mlp = "Rede Neural"
+mlp = "Rede_Neural"
 
 #previsor_utilizado e modelo utilizado
 previsor_utilizado = previsores_scalonados
