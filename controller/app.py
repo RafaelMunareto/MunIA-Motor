@@ -36,6 +36,7 @@ def menu_principal():
         print("R - Rodar modelos")
         print("C - Máquina de comitês")
         print("P - Predict e score")
+        print("T - Todas as etapas")
         print("S - Sair")
     
         escolha = input("Digite sua escolha? ").lower()
@@ -52,6 +53,13 @@ def menu_principal():
             maquinaComites()
             pass
         elif escolha == "p":
+            previsao()
+            pass 
+        elif escolha == "t":
+            processarBase()
+            processarBaseUtilizacao()
+            rodarModelos()
+            maquinaComites()
             previsao()
             pass 
         elif escolha == "s":

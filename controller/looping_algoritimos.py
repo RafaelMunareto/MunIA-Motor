@@ -14,6 +14,7 @@ from xgboost import XGBClassifier
 import config.environment as environment 
 from tqdm import tqdm
 import json
+import os 
 
 class LoopingAlgoritmos:
     def __init__(self):
@@ -23,7 +24,13 @@ class LoopingAlgoritmos:
         self.previsores = None
         self.modelos = {}
         self.resultados = {}
+        self.diretorio = None
 
+
+    def verificaDiretorio(self):
+        self.diretorio =  f'{environment.algoritimos_dir}{self.escolha}_{self.k_m_formatter(self.tamanho)}/'
+        if not os.path.exists(self.diretorio):
+            os.makedirs(self.diretorio)
     
     def carregarDados(self):
         self.escolha = input('\nQual previsor deseja escolher? Previsor (P), Scanolado (S) ou PCA (PCA)? ').lower()
@@ -43,7 +50,13 @@ class LoopingAlgoritmos:
             self.previsores = pickle.load(file)
             if self.tamanho < len(self.previsores):  
                 self.previsores = self.previsores[:self.tamanho]
+        self.verificaDiretorio()
             
+    def k_m_formatter(self, x):
+        if x >= 1000000:  
+            return f'{int(x/1000000)}m'
+        else:  
+            return f'{int(x/1000)}k'
         
     def treinarModelos(self):
         print(f'\nPrevisor utilizado: {environment.previsor_utilizado}')
@@ -78,19 +91,19 @@ class LoopingAlgoritmos:
         }
 
         resultados = {}
-        barra_progresso = tqdm(total=len(algoritmos), unit="modelo")
-        # Verifica se existe um arquivo de resultados salvos anteriormente
+      
         try:
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'rb') as file:
+            with open(f'{self.diretorio}{environment.resultado_completo_df}.pickle', 'rb') as file:
                 resultados_completos = pickle.load(file)
         except FileNotFoundError:
             resultados_completos = {"resultados": {}, "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S')}
-            
+        barra_progresso = tqdm(total=len(algoritmos), unit="modelo")
         for nome, modelo in algoritmos.items():
             if nome in resultados_completos['resultados']:
                 print(f"Resultados do modelo {nome} já existem. Pulando para o próximo.")
                 continue
             barra_progresso.set_description(f"Treinando {nome}...")
+         
             cv_scores = cross_val_score(modelo, X_train, y_train, cv=environment.cv)
             cv_accuracy = np.mean(cv_scores)
             modelo.fit(X_train, y_train)
@@ -101,7 +114,7 @@ class LoopingAlgoritmos:
             roc_auc = roc_auc_score(y_test, modelo.predict_proba(X_test)[:, 1])
         
             cm = confusion_matrix(y_test, y_pred)
-            barra_progresso.update(1)
+           
             fim_treinamento = datetime.now()
             resultados[nome] = {
                 "inicio": inicio_treinamento.strftime('%Y-%m-%d %H:%M:%S'),
@@ -115,14 +128,14 @@ class LoopingAlgoritmos:
                 "fim": fim_treinamento.strftime('%Y-%m-%d %H:%M:%S')
             }
             
-            with open(f'{environment.algoritimos_dir}{nome}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
+            with open(f'{self.diretorio}{nome}.pickle', 'wb') as file:
                 pickle.dump(modelo, file)
             
            
             resultados_completos = {
                 "resultados": resultados,
             }
-            with open(f'{environment.algoritimos_dir}{environment.resultado_completo_df}_{self.escolha}_{self.tamanho}.pickle', 'wb') as file:
+            with open(f'{self.diretorio}{environment.resultado_completo_df}.pickle', 'wb') as file:
                 pickle.dump(resultados_completos, file)
             barra_progresso.update(1)
             

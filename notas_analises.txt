@@ -1,0 +1,7 @@
+---- Supervisionado Classfificação -----
+
+ - Deu para entender que os previsores com PCA, Previsores normais e Scalonados o que responde melhor para esse modelo é o Scalonado
+ - Notei que o Gradient Boosting responde melhor com menos massa de treino do que mais
+ - Melhor resultado até agora foi Rede Neural com 215 no s_400k e o Xb no s_400k, rede neural o melhor por que colocou 205 no 75 -100
+ - knn é o melhor para ligar menos, acerta bem o extremo com menos ligações, mais acertos x menos acertos
+ 
