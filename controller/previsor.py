@@ -10,6 +10,8 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import os
+import matplotlib
+matplotlib.use('Agg') 
 
 class Previsor:
     def __init__(self):
@@ -21,8 +23,8 @@ class Previsor:
         self.scaler = None
         self.modelo_escolhido = None
         self.tipo = None
-        self.diretorio = None
-    
+        self.diretorio_resultado = None
+        self.diretorio_score = None
 
     def buscaResultadoAlgoritimo(self, resultado=False): 
         try:
@@ -33,14 +35,14 @@ class Previsor:
             return print('Não foi possível carregar o resultado_final do algoritimo')
         
     def verificaDiretorio(self):
-        self.diretorio =  f'{environment.resultado_dir}{self.tipo}/'
-        if not os.path.exists(self.diretorio):
-            os.makedirs(self.diretorio)
+        self.diretorio_resultado =  f'{environment.resultado_dir}{self.tipo}/'
+        if not os.path.exists(self.diretorio_resultado):
+            os.makedirs(self.diretorio_resultado)
 
     def verificaDiretorioScore(self):
-        self.diretorio =  f'{environment.score_dir}{self.tipo}/'
-        if not os.path.exists(self.diretorio):
-            os.makedirs(self.diretorio)
+        self.diretorio_score =  f'{environment.score_dir}{self.tipo}/'
+        if not os.path.exists(self.diretorio_score):
+            os.makedirs(self.diretorio_score)
 
     def carregarModelo(self):
         self.tipo = input('O modelo que quer usar ? Ex: (s_10k) (p_100k) ' )
@@ -76,16 +78,30 @@ class Previsor:
 
     def adicionarPredicoesAoDataFrame(self):
         barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
+        try:
+            with open(f'{self.diretorio_resultado}{environment.resultado_completo_df}.pickle', 'rb') as file:
+                resultados_completos = pickle.load(file)
+        except FileNotFoundError:
+               resultados_completos = {
+                    "resultados": [],
+                }
+                
+        barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
 
         for nome_modelo, modelo in self.modelos.items():
+            if nome_modelo in resultados_completos['resultados']:
+                print(f"Resultados do modelo {nome_modelo} já existem. Pulando para o próximo.")
+                continue
             barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 
             self.df[environment.predicao] = modelo.predict(self.X)
             self.df[environment.score] = modelo.predict_proba(self.X)[:, 1]
-
-            self.salvarDataFrame(nome_modelo)
+            
+            self.salvarDataFrame(nome_modelo,  resultados_completos)
+            self.rodarTudoEjogarAsImagensNaPasta(nome_modelo)  # Certifique-se de que esta função aceita o parâmetro 'nome_modelo'
+            
             barra_progresso.update(1)
-            self.rodarTudoEjogarAsImagensNaPasta(nome_modelo)
+
         barra_progresso.close()
         self.analise()
 
@@ -95,7 +111,7 @@ class Previsor:
 
         relatorio = {}
         try:
-            with open(f'{self.diretorio}{environment.resultado_completo_df}.pickle', 'rb') as file:
+            with open(f'{self.diretorio_resultado}{environment.resultado_completo_df}.pickle', 'rb') as file:
                 resultados_completos = pickle.load(file)
         except FileNotFoundError:
             resultados_completos = {"resultados": {}}
@@ -104,7 +120,7 @@ class Previsor:
             if modelo in resultados_completos['resultados']:
                 print(f"Resultados do modelo {modelo} já existem. Pulando para o próximo.")
                 continue
-            df = pd.read_csv(f'{self.diretorio}{modelo}_{self.tipo}.csv', sep=',')
+            df = pd.read_csv(f'{self.diretorio_resultado}{modelo}.csv', sep=',')
             df.drop('Unnamed: 0', axis=1, inplace=True)
             # Obtendo as primeiras previsões e as previsões com score maior que 0.3
             primeiras_previsoes = df.head(3)
@@ -155,15 +171,13 @@ class Previsor:
             imprimir_dataframe(info['scores_altos'])
             print("\n")
 
-    def salvarDataFrame(self, nome):
-        resultados_completos = {
-            "resultados": nome,
-        }
-        with open(f'{self.diretorio}{environment.resultado_completo_df}.pickle', 'wb') as file:
-            pickle.dump(resultados_completos, file)
-        caminho_completo = self.diretorio + nome
-        df2 = pd.DataFrame(self.X)
-        df2.to_csv(caminho_completo + '.csv' )
+    def salvarDataFrame(self, nome, resultado):
+
+        resultado['resultados'].append(nome)
+        with open(f'{self.diretorio_resultado}{environment.resultado_completo_df}.pickle', 'wb') as file:
+            pickle.dump(resultado, file)
+        caminho_completo = self.diretorio_resultado + nome
+        self.df.to_csv(caminho_completo + '.csv' )
 
     def previsoesMetricas(self):
         print('accuracy: Proporção de previsões corretas sobre o total. Mede a eficácia geral do modelo.\n')
@@ -178,12 +192,8 @@ class Previsor:
      
         score_boa_vista = pd.read_csv(f'{environment.base_dir}score.txt', sep=';')
         
-        modelo_treinado = pd.read_csv(f'{self.diretorio}{nome}.csv')
-
-        if isinstance(modelo_treinado, dict):
-            # Converta o dicionário em DataFrame, se necessário
-            modelo_treinado = pd.DataFrame([modelo_treinado])
-
+        modelo_treinado = pd.read_csv(f'{self.diretorio_resultado}{nome}.csv')
+   
         if len(modelo_treinado) == len(score_boa_vista):
             modelo_treinado['ScoreBVS'] = score_boa_vista['ScoreBVS'] * 0.2
             modelo_treinado['ID_VINCULO'] = score_boa_vista['ID_VINCULO']
@@ -194,9 +204,9 @@ class Previsor:
         else:
             print("Os DataFrames não têm o mesmo número de linhas e não podem ser combinados diretamente.")
         
-        self.montaGraficoComParametro(modelo_treinado)
+        self.montaGraficoComParametro(modelo_treinado, nome)
 
-    def montaGraficoComParametro(self, modelo_treinado):
+    def montaGraficoComParametro(self, modelo_treinado, nome):
         self.verificaDiretorioScore()
         # Função auxiliar para formatar o eixo y e os rótulos das barras
         def k_m_formatter(x, pos):
@@ -205,8 +215,6 @@ class Previsor:
             else:  # Se o valor for menor que 1 milhão
                 return f'{int(x/1000)}k'
 
-        # [Supondo que você já tenha o DataFrame 'modelo_treinado' carregado aqui]
-        print(modelo_treinado.columns) 
 
         # Definindo as faixas de score
         bins = [0, 24.99, 49.99, 74.99, 100]
@@ -275,7 +283,8 @@ class Previsor:
         plt.tight_layout()
         # Salvar a figura
         if not os.path.exists(f'{environment.score_dir}{self.tipo}'):
-             os.makedirs(f'{environment.score_dir}{self.tipo}')
-        plt.savefig( f'{environment.score_dir}{self.tipo}/{self.modelo}.png', format='png')
+            os.makedirs(f'{environment.score_dir}{self.tipo}')
+        plt.savefig(f'{environment.score_dir}{self.tipo}/{nome}.png', format='png')
+
         plt.show()
 

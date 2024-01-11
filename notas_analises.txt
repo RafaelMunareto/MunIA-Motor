@@ -1,3 +1,19 @@
+--- Parâmetros de Análise ---
+    accuracy: Proporção de previsões corretas sobre o total. Mede a eficácia geral do modelo.
+
+    precision: Proporção de previsões positivas corretas. Indica a qualidade dos resultados positivos do modelo.
+
+    cv_Accuracy: Média da acurácia do modelo em diferentes subconjuntos do conjunto de treinamento. Oferece uma estimativa mais robusta da performance do modelo.
+
+    recall: Proporção de casos positivos reais identificados corretamente. Mede a capacidade do modelo de detectar resultados positivos.
+
+    f1_score: Média harmônica de precisão e recall. Combina precisão e revocação em uma única métrica, útil quando o equilíbrio entre estas é importante.
+
+    roc_auc: Medida de quão bem o modelo distingue entre classes. Quanto maior, melhor o modelo em diferenciar entre positivo e negativo.
+
+    confusion_matrix: Tabela que mostra os acertos e erros do modelo comparados com a realidade. Ajuda a entender os tipos de erro e acerto.
+
+
 ---- Supervisionado Classfificação -----
 
  - Deu para entender que os previsores com PCA, Previsores normais e Scalonados o que responde melhor para esse modelo é o Scalonado
