@@ -77,7 +77,6 @@ class Previsor:
         return self.modelo.predict_proba(self.X)[:, 1]
 
     def adicionarPredicoesAoDataFrame(self):
-        barra_progresso = tqdm.tqdm(total=len(self.modelos), desc="Iniciando previsões", unit="modelo")
         try:
             with open(f'{self.diretorio_resultado}{environment.resultado_completo_df}.pickle', 'rb') as file:
                 resultados_completos = pickle.load(file)
@@ -91,6 +90,7 @@ class Previsor:
         for nome_modelo, modelo in self.modelos.items():
             if nome_modelo in resultados_completos['resultados']:
                 print(f"Resultados do modelo {nome_modelo} já existem. Pulando para o próximo.")
+                barra_progresso.update(1)
                 continue
             barra_progresso.set_description(f"Previsões modelo: {nome_modelo}...")
 

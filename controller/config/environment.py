@@ -1,6 +1,18 @@
 
 
-# Diretórios de arquivos
+def atualiza_caminho_modelo(novo_caminho):
+    global model, base_dir, teste_dir, resultado_dir, score_dir, algoritimos_dir, variaveis_dir, variaveis_csv_file
+    model = 'model/'
+    model =  'model/' + novo_caminho + '/'
+    base_dir = model + 'base/'
+    teste_dir = model + 'teste/'
+    resultado_dir = model + 'resultados/'
+    score_dir = model + 'analise_score/'
+    algoritimos_dir = model + 'algoritimos/'
+    variaveis_dir = model + 'variaveis/'
+    variaveis_csv_file = base_dir + 'IA_TUDO_EM_DIA_CONTROLE.txt'
+
+
 model = 'model/'
 base_dir = model + 'base/'
 teste_dir = model + 'teste/'
@@ -9,9 +21,8 @@ score_dir = model + 'analise_score/'
 algoritimos_dir = model + 'algoritimos/'
 variaveis_dir = model + 'variaveis/'
 variaveis_csv_file = base_dir + 'IA_TUDO_EM_DIA_CONTROLE.txt'
-max_alvo_previsor = ':'
-
 #variaveis 
+max_alvo_previsor = ':'
 alvo = 'alvo.pickle'
 previsores = 'previsores.pickle'
 previsores_scalonados = 'previsores_scalonados.pickle'

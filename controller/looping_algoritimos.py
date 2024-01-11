@@ -41,15 +41,33 @@ class LoopingAlgoritmos:
         elif self.escolha == 'pca':
             environment.previsor_utilizado = environment.previsores_pca
         self.tamanho = int(input('Tamanho Máximo do previsor e alvo? '))
-        with open(f'{environment.variaveis_dir}{environment.alvo}', 'rb') as file:
-            self.alvo = pickle.load(file)
-            if self.tamanho < len(self.alvo): 
-                self.alvo = self.alvo[:self.tamanho]
-                environment.tamanho = self.tamanho
-        with open(f'{environment.variaveis_dir}{environment.previsor_utilizado}', 'rb') as file:
-            self.previsores = pickle.load(file)
-            if self.tamanho < len(self.previsores):  
-                self.previsores = self.previsores[:self.tamanho]
+        diretorio_completo = environment.variaveis_dir
+       # Verificação e criação do diretório
+        diretorio_completo = environment.variaveis_dir
+        if not os.path.exists(diretorio_completo):
+            os.makedirs(diretorio_completo)
+
+        # Abertura do arquivo alvo
+        caminho_alvo = f'{environment.variaveis_dir}{environment.alvo}'
+        caminho_previsores = f'{environment.variaveis_dir}{environment.previsor_utilizado}'
+        print(f'Tentando abrir o arquivo: {caminho_alvo}')  # Depuração
+        if os.path.exists(caminho_alvo):
+            with open(caminho_alvo, 'rb') as file:
+                self.alvo = pickle.load(file)
+                if self.tamanho < len(self.alvo):
+                    self.alvo = self.alvo[:self.tamanho]
+                    self.tamanho = self.tamanho
+        else:
+            print(f'Arquivo não encontrado: {caminho_alvo}')
+        
+        if os.path.exists(caminho_previsores):
+            with open(caminho_previsores, 'rb') as file:
+                self.previsores = pickle.load(file)
+                if self.tamanho < len(self.previsores):  
+                    self.previsores = self.previsores[:self.tamanho]
+        else:
+            print(f'Arquivo não encontrado: {caminho_previsores}')
+
         self.verificaDiretorio()
             
     def k_m_formatter(self, x):
